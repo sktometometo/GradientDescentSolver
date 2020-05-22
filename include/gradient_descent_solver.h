@@ -16,6 +16,7 @@ public:
     void setdf( boost::function<InputClass(InputClass)> df );
     void seterror( boost::function<double(InputClass)> error );
     InputClass solve( InputClass x_start, double epsilon );
+    InputClass solveAcceled( InputClass x_start, double epsilon );
 
 protected:
 
@@ -70,28 +71,85 @@ inline InputClass GradientDescentSolver<InputClass>::solve( InputClass x_start, 
     double alpha = 0; // ステップ幅
     InputClass d; // 探索方向
     for ( long i = 0; ; i++ ) {
+        // print
         if ( this->debug_mode_ ) {
             std::cout << i << ", ";
+            std::cout << this->error_(x) << ", " ;
             for ( int i=0; i<x.rows(); i++ ) {
                 std::cout << x(i) << ", ";
             }
-            std::cout << this->error_(x) << ", " << alpha << std::endl;
+            std::cout << alpha << std::endl;
+        } else {
+            std::cout << i << ", ";
+            std::cout << this->error_(x) << ", ";
+            std::cout << std::endl;
         }
-
         // 停止条件が満たされているかを確認
-        if ( this->checkStopCondition( x, epsilon ) or ( x - x_pre ).norm() < epsilon ) {
+        if ( this->checkStopCondition( x, epsilon ) ) {
             break;
         }
-
         // 探索方向 d_k を決定する
         d = calcSearchDirection( x );
-
         // ステップ幅を計算
         alpha = calcSearchStep( x, d );
-
-        // k -> k+1
+        // 更新
         x_pre = x;
-        x += alpha * d;
+        x = x + alpha * d;
+    }
+
+    return x;
+}
+
+template <class InputClass>
+inline InputClass GradientDescentSolver<InputClass>::solveAcceled( InputClass x_start, double epsilon )
+{
+    // 
+    InputClass x = x_start;
+    InputClass x_pre = x;
+    double alpha = 0; // ステップ幅
+    double rho = 1;
+    double rho_pre = 1;
+    double gamma;
+    InputClass x_bar, dx;
+    InputClass d; // 探索方向
+    for ( long i = 0; ; i++ ) {
+        // print
+        if ( this->debug_mode_ ) {
+            std::cout << i << ", ";
+            std::cout << this->error_(x) << ", " ;
+            for ( int i=0; i<x.rows(); i++ ) {
+                std::cout << x(i) << ", ";
+            }
+            std::cout << alpha << std::endl;
+        } else {
+            std::cout << i << ", ";
+            std::cout << this->error_(x) << ", ";
+            std::cout << std::endl;
+        }
+        //
+        if ( this->f_(x) >= this->f_(x_pre) ) {
+            rho = 1;
+            rho_pre = 1;
+        }
+        // 停止条件が満たされているかを確認
+        if ( this->checkStopCondition( x, epsilon ) ) {
+            break;
+        }
+        // x_bar
+        gamma = ( rho_pre - 1 ) / rho;
+        std::cout << "gamma: " << gamma << std::endl;
+        dx = x - x_pre;
+        x_bar = x + gamma * dx;
+        //x_bar = x;
+        // 探索方向 d_k を決定する
+        d = calcSearchDirection( x_bar );
+        // ステップ幅を計算
+        alpha = calcSearchStep( x_bar, d );
+        // 更新
+        x_pre = x;
+        x = x_bar + alpha * d;
+        rho_pre = rho;
+        rho = ( 1 + std::sqrt( 1 + 4 * rho_pre * rho_pre ) ) / 2.0;
     }
 
     return x;
