@@ -174,7 +174,9 @@ inline double GradientDescentSolver<InputClass>::calcSearchStep(
 {
     // armijo 条件を満たす alpha を求める
     double alpha = 1.0;
-    while ( not this->f_( x + alpha * direction ) - this->f_(x) <= xi * alpha * this->df_( x ).dot( direction ) ) {
+    // この条件をいじると収束しなくなる?
+    // 同値な条件のはずなのに....
+    while ( this->f_( x + alpha * direction ) - this->f_(x) > xi * alpha * this->df_( x ).dot( direction ) ) {
         alpha *= tau;
     }
     return alpha;
