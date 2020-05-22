@@ -22,7 +22,7 @@ protected:
     boost::function<double(InputClass)> f_;
 
     InputClass df( InputClass x, double dx );
-    bool checkStopCondition( InputClass x, double epsilon );
+    bool checkStopCondition( InputClass x, InputClass x_pre, double epsilon );
     InputClass calcSearchDirection( InputClass x );
     double calcSearchStep( InputClass x, InputClass direction, double xi = 0.3, double tau = 0.9 );
 };
@@ -50,15 +50,20 @@ inline InputClass GradientDescentSolver<InputClass>::solve( InputClass x_start, 
 {
     // 
     InputClass x = x_start;
+    InputClass x_pre = x_start + 2 * epsilon * x_start.normalized();
     double alpha = 0; // ステップ幅
     InputClass d; // 探索方向
     for ( long i = 0; ; i++ ) {
         if ( this->debug_mode_ ) {
-            std::cout << i << " th iteration:\n" << x << std::endl;
+            std::cout << i << ", ";
+            for ( int i=0; i<x.rows(); i++ ) {
+                std::cout << x(i) << ", ";
+            }
+            std::cout << std::endl;
         }
 
         // 停止条件が満たされているかを確認
-        if ( this->checkStopCondition( x, epsilon ) ) {
+        if ( this->checkStopCondition( x, x_pre, epsilon ) ) {
             break;
         }
 
@@ -69,6 +74,7 @@ inline InputClass GradientDescentSolver<InputClass>::solve( InputClass x_start, 
         alpha = calcSearchStep( x, d );
 
         // k -> k+1
+        x_pre = x;
         x += alpha * d;
     }
 
@@ -88,10 +94,13 @@ inline InputClass GradientDescentSolver<InputClass>::df( InputClass x, double dx
 }
 
 template <class InputClass>
-inline bool GradientDescentSolver<InputClass>::checkStopCondition( InputClass x, double epsilon )
+inline bool GradientDescentSolver<InputClass>::checkStopCondition(
+        InputClass x,
+        InputClass x_pre,
+        double epsilon )
 {
     double dx = x.norm() / 100;
-    if ( std::abs( this->df( x, dx ).norm() ) < epsilon ) {
+    if ( std::abs( this->df( x, dx ).norm() ) < epsilon or ( x - x_pre ).norm() < epsilon ) {
         return true;
     } else {
         return false;
