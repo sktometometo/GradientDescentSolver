@@ -23,12 +23,18 @@ target_link_libraries(sample
     ${PYTHON_LIBRARIES}
 )
 
+add_executable(01_nonconvex
+    src/01_nonconvex.cpp
+)
+target_link_libraries(01_nonconvex
+    ${Boost_LIBRARIES}
+)
+
 add_executable(02_convex
     src/02_convex.cpp
 )
 target_link_libraries(02_convex
     ${Boost_LIBRARIES}
-    ${PYTHON_LIBRARIES}
 )
 
 add_executable(03_strongconvex
