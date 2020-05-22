@@ -67,7 +67,6 @@ inline InputClass GradientDescentSolver<InputClass>::solve( InputClass x_start, 
 {
     // 
     InputClass x = x_start;
-    InputClass x_pre = x + 2 * epsilon * x.normalized();
     double alpha = 0; // ステップ幅
     InputClass d; // 探索方向
     for ( long i = 0; ; i++ ) {
@@ -93,7 +92,6 @@ inline InputClass GradientDescentSolver<InputClass>::solve( InputClass x_start, 
         // ステップ幅を計算
         alpha = calcSearchStep( x, d );
         // 更新
-        x_pre = x;
         x = x + alpha * d;
     }
 
@@ -105,12 +103,9 @@ inline InputClass GradientDescentSolver<InputClass>::solveAcceled( InputClass x_
 {
     // 
     InputClass x = x_start;
-    InputClass x_pre = x;
+    InputClass x_pre = x_start;
+    InputClass dx;
     double alpha = 0; // ステップ幅
-    double rho = 1;
-    double rho_pre = 1;
-    double gamma;
-    InputClass x_bar, dx;
     InputClass d; // 探索方向
     for ( long i = 0; ; i++ ) {
         // print
@@ -126,30 +121,18 @@ inline InputClass GradientDescentSolver<InputClass>::solveAcceled( InputClass x_
             std::cout << this->error_(x) << ", ";
             std::cout << std::endl;
         }
-        //
-        if ( this->f_(x) >= this->f_(x_pre) ) {
-            rho = 1;
-            rho_pre = 1;
-        }
         // 停止条件が満たされているかを確認
         if ( this->checkStopCondition( x, epsilon ) ) {
             break;
         }
-        // x_bar
-        gamma = ( rho_pre - 1 ) / rho;
-        std::cout << "gamma: " << gamma << std::endl;
-        dx = x - x_pre;
-        x_bar = x + gamma * dx;
-        //x_bar = x;
         // 探索方向 d_k を決定する
-        d = calcSearchDirection( x_bar );
+        d = calcSearchDirection( x );
         // ステップ幅を計算
-        alpha = calcSearchStep( x_bar, d );
+        alpha = calcSearchStep( x, d );
         // 更新
+        dx = x - x_pre;
         x_pre = x;
-        x = x_bar + alpha * d;
-        rho_pre = rho;
-        rho = ( 1 + std::sqrt( 1 + 4 * rho_pre * rho_pre ) ) / 2.0;
+        x = x + alpha * d + 0.9 * dx;
     }
 
     return x;

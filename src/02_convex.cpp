@@ -17,7 +17,7 @@ double fn( Eigen::VectorXd x, Eigen::MatrixXd A, Eigen::VectorXd b )
 
 Eigen::VectorXd dfn( Eigen::VectorXd x, Eigen::MatrixXd A, Eigen::VectorXd b )
 {
-    return - 2 * A.transpose() * b + 2 * A.transpose() * A * x;
+    return 2 * A.transpose() * A * x - 2 * A.transpose() * b;
 }
 
 double errorn( Eigen::VectorXd x, Eigen::VectorXd x_star, Eigen::MatrixXd A, Eigen::VectorXd b )
@@ -30,7 +30,8 @@ int main( int argc, char **argv )
     boost::program_options::options_description opt("option");
     opt.add_options()
             ("help,h", "shot help")
-            ("degree,d", boost::program_options::value<int>(), "size of problem");
+            ("degree,d", boost::program_options::value<int>(), "size of problem")
+            ("error,e", boost::program_options::value<double>(), "threshold of error");
     boost::program_options::variables_map vm;
     try {
         boost::program_options::store( boost::program_options::parse_command_line( argc, argv, opt ), vm );
@@ -40,13 +41,15 @@ int main( int argc, char **argv )
     }
     boost::program_options::notify( vm );
 
-    int degree = 10;
-    if ( vm.count("help") || !vm.count("degree") ) {
+    int degree;
+    double error;
+    if ( vm.count("help") || !vm.count("degree") || !vm.count("error") ) {
         std::cout << opt << std::endl;
         return 0;
     } else {
         try {
             degree = vm["degree"].as<int>();
+            error = vm["error"].as<double>();
         } catch ( const boost::bad_any_cast& e ) {
             std::cout << e.what() << std::endl;
             return 0;
@@ -66,7 +69,7 @@ int main( int argc, char **argv )
     solver.setf( boost::bind( fn, _1, A, b ) );
     solver.setdf( boost::bind( dfn, _1, A, b ) );
     solver.seterror( boost::bind( errorn, _1, omega_hat, A, b ) );
-    Eigen::VectorXd x_target = solver.solve( x_start, 1.0 );
+    Eigen::VectorXd x_target = solver.solve( x_start, error );
 
     return 0;
 }
