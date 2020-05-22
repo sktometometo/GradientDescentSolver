@@ -31,8 +31,16 @@ target_link_libraries(02_convex
     ${PYTHON_LIBRARIES}
 )
 
-add_executable(03_strongconvex src/03_strongconvex.cpp)
-target_link_libraries(03_strongconvex ${Boost_LIBRARIES})
+add_executable(03_strongconvex
+    src/03_strongconvex.cpp
+)
+target_link_libraries(03_strongconvex
+    ${Boost_LIBRARIES}
+)
 
-add_executable(04_convex_with_acceleration src/04_convex_with_acceleration.cpp)
-target_link_libraries(04_convex_with_acceleration ${Boost_LIBRARIES})
+add_executable(04_convex_with_acceleration
+    src/04_convex_with_acceleration.cpp
+)
+target_link_libraries(04_convex_with_acceleration 
+    ${Boost_LIBRARIES}
+)

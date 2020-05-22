@@ -30,7 +30,9 @@ int main( int argc, char **argv )
     boost::program_options::options_description opt("option");
     opt.add_options()
             ("help,h", "shot help")
-            ("degree,d", boost::program_options::value<int>(), "size of problem");
+            ("debug", boost::program_options::value<bool>()->default_value(false), "print trajectory" )
+            ("degree,d", boost::program_options::value<int>(), "size of problem")
+            ("error,e", boost::program_options::value<double>(), "threshold of error");
     boost::program_options::variables_map vm;
     try {
         boost::program_options::store( boost::program_options::parse_command_line( argc, argv, opt ), vm );
@@ -40,13 +42,17 @@ int main( int argc, char **argv )
     }
     boost::program_options::notify( vm );
 
-    int degree = 10;
-    if ( vm.count("help") || !vm.count("degree") ) {
+    bool debug;
+    int degree;
+    double error;
+    if ( vm.count("help") || !vm.count("degree") || !vm.count("error") ) {
         std::cout << opt << std::endl;
         return 0;
     } else {
         try {
+            debug = vm["debug"].as<bool>();
             degree = vm["degree"].as<int>();
+            error = vm["error"].as<double>();
         } catch ( const boost::bad_any_cast& e ) {
             std::cout << e.what() << std::endl;
             return 0;
@@ -62,21 +68,12 @@ int main( int argc, char **argv )
 
     std::cout << std::fixed;
 
-    /*
-    Eigen::Matrix2d A;
-    A << 2, 0,
-         0, 2;
-    Eigen::Vector2d b;
-    b << 0, 0;
-    Eigen::Vector2d x_start;
-    x_start << 10, 10;
-    */
-
-    GradientDescentSolver<Eigen::VectorXd> solver( false );
+    GradientDescentSolver<Eigen::VectorXd> solver( debug );
     solver.setf( boost::bind( fn, _1, A, b ) );
     solver.setdf( boost::bind( dfn, _1, A, b ) );
     solver.seterror( boost::bind( errorn, _1, omega_hat, A, b ) );
-    Eigen::VectorXd x_target = solver.solve( x_start, 1.0 );
+    std::vector<Eigen::VectorXd> trajectory;
+    Eigen::VectorXd x_target = solver.solve( x_start, trajectory, error );
 
     return 0;
 }

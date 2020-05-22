@@ -30,6 +30,7 @@ int main( int argc, char **argv )
     boost::program_options::options_description opt("option");
     opt.add_options()
             ("help,h", "shot help")
+            ("debug", boost::program_options::value<bool>()->default_value(false), "print trajectory" )
             ("degree,d", boost::program_options::value<int>(), "size of problem")
             ("error,e", boost::program_options::value<double>(), "threshold of error")
             ("lambda,l", boost::program_options::value<double>(), "lambda");
@@ -42,6 +43,7 @@ int main( int argc, char **argv )
     }
     boost::program_options::notify( vm );
 
+    bool debug;
     int degree;
     double error;
     double lambda;
@@ -50,6 +52,7 @@ int main( int argc, char **argv )
         return 0;
     } else {
         try {
+            debug = vm["debug"].as<bool>();
             degree = vm["degree"].as<int>();
             error = vm["error"].as<double>();
             lambda = vm["lambda"].as<double>();
@@ -64,15 +67,17 @@ int main( int argc, char **argv )
     Eigen::VectorXd omega_hat = Eigen::VectorXd::Ones(degree);
     Eigen::VectorXd eps = Eigen::VectorXd::Random(degree) * 10;
     Eigen::VectorXd b = A * omega_hat + eps;
+    Eigen::VectorXd x_star = A.inverse() * b;
     Eigen::VectorXd x_start = Eigen::VectorXd::Random(degree) * 100;
 
     std::cout << std::fixed;
 
-    GradientDescentSolver<Eigen::VectorXd> solver( false );
+    GradientDescentSolver<Eigen::VectorXd> solver( debug );
     solver.setf( boost::bind( fn, _1, A, b, lambda ) );
     solver.setdf( boost::bind( dfn, _1, A, b, lambda ) );
-    solver.seterror( boost::bind( errorn, _1, omega_hat, A, b, lambda ) );
-    Eigen::VectorXd x_target = solver.solve( x_start, error );
+    solver.seterror( boost::bind( errorn, _1, x_star, A, b, lambda ) );
+    std::vector<Eigen::VectorXd> trajectory;
+    Eigen::VectorXd x_target = solver.solve( x_start, trajectory, error );
 
     return 0;
 }
