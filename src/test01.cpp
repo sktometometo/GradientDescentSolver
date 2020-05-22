@@ -10,8 +10,18 @@
 
 double fn( Eigen::Vector2d x, Eigen::Matrix2d A, Eigen::Vector2d b )
 {
-    double t = ( b - A * x ).norm();
-    return t * t;
+    Eigen::Vector2d t = ( b - A * x );
+    return t.dot( t );
+}
+
+Eigen::Vector2d dfn( Eigen::Vector2d x, Eigen::Matrix2d A, Eigen::Vector2d b )
+{
+    return - 2 * A.transpose() * b + 2 * A.transpose() * A * x;
+}
+
+double errorn( Eigen::Vector2d x, Eigen::Vector2d x_star, Eigen::Matrix2d A, Eigen::Vector2d b )
+{
+    return std::abs( fn( x, A, b ) - fn( x_star, A, b ) );
 }
 
 int main( int argc, char **argv )
@@ -32,7 +42,10 @@ int main( int argc, char **argv )
     x_start << 10, 10;
     */
 
-    GradientDescentSolver<Eigen::Vector2d> solver( boost::bind( fn, _1, A, b ), true );
+    GradientDescentSolver<Eigen::Vector2d> solver( true );
+    solver.setf( boost::bind( fn, _1, A, b ) );
+    solver.setdf( boost::bind( dfn, _1, A, b ) );
+    solver.seterror( boost::bind( errorn, _1, omega_hat, A, b ) );
     Eigen::Vector2d x_target = solver.solve( x_start, 0.1 );
 
     return 0;

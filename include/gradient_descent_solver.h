@@ -10,35 +10,35 @@ class GradientDescentSolver
 {
 public:
     GradientDescentSolver(
-            boost::function<double(InputClass)> f,
             bool debug = true
             );
-    void set( boost::function<double(InputClass)> f );
+    void setf( boost::function<double(InputClass)> f );
+    void setdf( boost::function<InputClass(InputClass)> df );
+    void seterror( boost::function<double(InputClass)> error );
     InputClass solve( InputClass x_start, double epsilon );
 
 protected:
 
     bool debug_mode_;
     boost::function<double(InputClass)> f_;
+    boost::function<InputClass(InputClass)> df_;
+    boost::function<double(InputClass)> error_;
 
-    InputClass df( InputClass x, double dx );
-    bool checkStopCondition( InputClass x, InputClass x_pre, double epsilon );
+    bool checkStopCondition( InputClass x, double epsilon );
     InputClass calcSearchDirection( InputClass x );
-    double calcSearchStep( InputClass x, InputClass direction, double xi = 0.3, double tau = 0.9 );
+    double calcSearchStep( InputClass x, InputClass direction, double xi = 0.0001, double tau = 0.5 );
 };
 
 template <class InputClass>
 inline GradientDescentSolver<InputClass>::GradientDescentSolver(
-        boost::function<double(InputClass)> f,
         bool debug
         )
 {
-    this->set( f );
     this->debug_mode_ = debug;
 }
 
 template <class InputClass>
-inline void GradientDescentSolver<InputClass>::set(
+inline void GradientDescentSolver<InputClass>::setf(
         boost::function<double(InputClass)> f
         )
 {
@@ -46,11 +46,27 @@ inline void GradientDescentSolver<InputClass>::set(
 }
 
 template <class InputClass>
+inline void GradientDescentSolver<InputClass>::setdf(
+        boost::function<InputClass(InputClass)> df
+        )
+{
+    this->df_ = df;
+}
+
+template <class InputClass>
+inline void GradientDescentSolver<InputClass>::seterror(
+        boost::function<double(InputClass)> error
+        )
+{
+    this->error_ = error;
+}
+
+template <class InputClass>
 inline InputClass GradientDescentSolver<InputClass>::solve( InputClass x_start, double epsilon )
 {
     // 
     InputClass x = x_start;
-    InputClass x_pre = x_start + 2 * epsilon * x_start.normalized();
+    InputClass x_pre = x + 2 * epsilon * x.normalized();
     double alpha = 0; // ステップ幅
     InputClass d; // 探索方向
     for ( long i = 0; ; i++ ) {
@@ -59,11 +75,11 @@ inline InputClass GradientDescentSolver<InputClass>::solve( InputClass x_start, 
             for ( int i=0; i<x.rows(); i++ ) {
                 std::cout << x(i) << ", ";
             }
-            std::cout << std::endl;
+            std::cout << this->error_(x) << ", " << alpha << std::endl;
         }
 
         // 停止条件が満たされているかを確認
-        if ( this->checkStopCondition( x, x_pre, epsilon ) ) {
+        if ( this->checkStopCondition( x, epsilon ) or ( x - x_pre ).norm() < epsilon ) {
             break;
         }
 
@@ -82,25 +98,11 @@ inline InputClass GradientDescentSolver<InputClass>::solve( InputClass x_start, 
 }
 
 template <class InputClass>
-inline InputClass GradientDescentSolver<InputClass>::df( InputClass x, double dx )
-{
-    InputClass result = x;
-    for ( int i; i < x.rows(); i++ ) {
-        InputClass x_dx = x;
-        x_dx(i) -= dx;
-        result(i) = ( this->f_(x) - this->f_(x_dx) ) / dx;
-    }
-    return result;
-}
-
-template <class InputClass>
 inline bool GradientDescentSolver<InputClass>::checkStopCondition(
         InputClass x,
-        InputClass x_pre,
         double epsilon )
 {
-    double dx = x.norm() / 100;
-    if ( std::abs( this->df( x, dx ).norm() ) < epsilon or ( x - x_pre ).norm() < epsilon ) {
+    if ( this->error_( x ) < epsilon ) {
         return true;
     } else {
         return false;
@@ -110,8 +112,7 @@ inline bool GradientDescentSolver<InputClass>::checkStopCondition(
 template <class InputClass>
 inline InputClass GradientDescentSolver<InputClass>::calcSearchDirection( InputClass x )
 {
-    double dx = x.norm() / 100;
-    return -1 * this->df( x, dx ).normalized();
+    return -1 * this->df_( x );
 }
 
 template <class InputClass>
@@ -124,8 +125,7 @@ inline double GradientDescentSolver<InputClass>::calcSearchStep(
 {
     // armijo 条件を満たす alpha を求める
     double alpha = 1.0;
-    double dx = x.norm() / 100;
-    while ( this->f_( x + alpha * direction ) > this->f_(x) + xi * alpha * this->df( x, dx ).dot( direction ) ) {
+    while ( this->f_( x + alpha * direction ) > this->f_(x) + xi * alpha * this->df_( x ).dot( direction ) ) {
         alpha *= tau;
     }
     return alpha;
