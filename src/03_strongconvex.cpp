@@ -62,6 +62,7 @@ int main( int argc, char **argv )
         }
     }
 
+    srand((unsigned int) time(0));
 
     Eigen::MatrixXd A = Eigen::MatrixXd::Random(degree,degree) * 100;
     Eigen::VectorXd omega_hat = Eigen::VectorXd::Ones(degree);
