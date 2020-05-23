@@ -31,10 +31,11 @@ int main( int argc, char **argv )
     opt.add_options()
             ("help,h", "shot help")
             ("accel,a", boost::program_options::value<int>()->default_value(0), "acceleration method" )
-            ("debug", boost::program_options::value<bool>()->default_value(false), "print trajectory" )
+            ("debug", boost::program_options::value<int>()->default_value(0), "debug mode" )
             ("degree,d", boost::program_options::value<int>(), "size of problem")
             ("error,e", boost::program_options::value<double>(), "threshold of error")
-            ("lambda,l", boost::program_options::value<double>(), "lambda");
+            ("lambda,l", boost::program_options::value<double>(), "lambda")
+            ("printparam", boost::program_options::value<bool>()->default_value(false), "print parameter" );
     boost::program_options::variables_map vm;
     try {
         boost::program_options::store( boost::program_options::parse_command_line( argc, argv, opt ), vm );
@@ -45,20 +46,22 @@ int main( int argc, char **argv )
     boost::program_options::notify( vm );
 
     int accel;
-    bool debug;
+    int debug;
     int degree;
     double error;
     double lambda;
+    bool printparam;
     if ( vm.count("help") || !vm.count("degree") || !vm.count("error") || !vm.count("lambda") ) {
         std::cout << opt << std::endl;
         return 0;
     } else {
         try {
             accel = vm["accel"].as<int>();
-            debug = vm["debug"].as<bool>();
+            debug = vm["debug"].as<int>();
             degree = vm["degree"].as<int>();
             error = vm["error"].as<double>();
             lambda = vm["lambda"].as<double>();
+            printparam = vm["printparam"].as<bool>();
         } catch ( const boost::bad_any_cast& e ) {
             std::cout << e.what() << std::endl;
             return 0;
@@ -77,11 +80,13 @@ int main( int argc, char **argv )
 
     std::cout << std::fixed;
 
-    if ( debug ) {
+    if ( printparam ) {
         std::cout << "A:" << std::endl;
         std::cout << A << std::endl;
         std::cout << "b:" << std::endl;
         std::cout << b << std::endl;
+        std::cout << "lambda:" << std::endl;
+        std::cout << lambda << std::endl;
         std::cout << "x_start:" << std::endl;
         std::cout << x_start << std::endl;
     }
@@ -92,6 +97,10 @@ int main( int argc, char **argv )
     solver.seterror( boost::bind( errorn, _1, x_star, A, b, lambda ) );
     std::vector<Eigen::VectorXd> trajectory;
     Eigen::VectorXd x_target = solver.solve( x_start, trajectory, error, accel );
+
+    if ( isnan( x_target.norm() ) ) {
+        std::cout << "diverged." << std::endl;
+    }
 
     return 0;
 }

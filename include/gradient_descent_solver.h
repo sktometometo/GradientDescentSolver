@@ -11,7 +11,7 @@ class GradientDescentSolver
 {
 public:
     GradientDescentSolver(
-            bool debug = true
+            int debug = 0
             );
     void setf( boost::function<double(InputClass)> f );
     void setdf( boost::function<InputClass(InputClass)> df );
@@ -20,19 +20,19 @@ public:
 
 protected:
 
-    bool debug_mode_;
+    int debug_mode_; // 0: not print, 1: print briefly, 2: print detaily
     boost::function<double(InputClass)> f_;
     boost::function<InputClass(InputClass)> df_;
     boost::function<double(InputClass)> error_;
 
     bool checkStopCondition( InputClass x, double epsilon );
-    InputClass calcSearchDirection( InputClass x );
+    InputClass calcSearchDirection( InputClass x, double learning_rate );
     double calcSearchStep( InputClass x, InputClass direction, double xi = 0.01, double tau = 0.5 );
 };
 
 template <class InputClass>
 inline GradientDescentSolver<InputClass>::GradientDescentSolver(
-        bool debug
+        int debug
         )
 {
     this->debug_mode_ = debug;
@@ -87,35 +87,42 @@ inline InputClass GradientDescentSolver<InputClass>::solve(
         // 探索方向 d_k を決定し, ステップ幅を決定する
         switch ( accel ) {
             case 1:
-                d = calcSearchDirection( x );
+                d = calcSearchDirection( x, 0.1 );
                 alpha = calcSearchStep( x, d );
                 break;
             case 2:
-                x_bar = x + ( ( rho_pre - 1 ) / rho ) * ( x - x_pre );
-                d = calcSearchDirection( x_bar );
-                alpha = calcSearchStep( x_bar, d );
+                d = calcSearchDirection( x, 0.1 );
+                alpha = calcSearchStep( x, d );
                 break;
             default:
-                d = calcSearchDirection( x );
+                d = calcSearchDirection( x, 0.1 );
                 alpha = calcSearchStep( x, d );
                 break;
         }
 
         // print
-        if ( this->debug_mode_ ) {
-            std::cout << i << ", ";
-            std::cout << this->error_(x) << ", " ;
-            for ( int i=0; i<x.rows(); i++ ) {
-                std::cout << x(i) << ", ";
-            }
-            for ( int i=0; i<d.rows(); i++ ) {
-                std::cout << d(i) << ", ";
-            }
-            std::cout << alpha << std::endl;
-        } else {
-            std::cout << i << ", ";
-            std::cout << this->error_(x) << ", ";
-            std::cout << std::endl;
+        switch ( this->debug_mode_ ) {
+            case 1:
+                std::cout << i << ", ";
+                std::cout << this->error_(x) << ", ";
+                std::cout << std::endl;
+                break;
+            case 2:
+                std::cout << i << ", ";
+                std::cout << this->error_(x) << ", " ;
+                if ( accel == 2 ) {
+                    std::cout << rho << ", " ;
+                    std::cout << rho_pre << ", " ;
+                    std::cout << ( ( rho_pre - 1 ) / rho ) << ", ";
+                }
+                std::cout << alpha << ", ";
+                for ( int i=0; i<x.rows(); i++ ) {
+                    std::cout << x(i) << ", ";
+                }
+                for ( int i=0; i<d.rows(); i++ ) {
+                    std::cout << d(i) << ", ";
+                }
+                std::cout << std::endl;
         }
 
         // 停止条件が満たされているかを確認
@@ -133,8 +140,9 @@ inline InputClass GradientDescentSolver<InputClass>::solve(
             case 2:
                 rho_pre = rho;
                 rho = ( 1 + std::sqrt( 1 + 4 * rho * rho ) ) / 2;
+                dx = x - x_pre;
                 x_pre = x;
-                x = x_bar + alpha * d;
+                x = x + alpha * d + ( ( rho_pre - 1 ) / rho ) * dx;
                 break;
             default:
                 x_pre = x;
@@ -151,7 +159,7 @@ inline bool GradientDescentSolver<InputClass>::checkStopCondition(
         InputClass x,
         double epsilon )
 {
-    if ( this->error_( x ) < epsilon ) {
+    if ( this->error_( x ) < epsilon or isnan( x.norm() ) ) {
         return true;
     } else {
         return false;
@@ -159,9 +167,9 @@ inline bool GradientDescentSolver<InputClass>::checkStopCondition(
 }
 
 template <class InputClass>
-inline InputClass GradientDescentSolver<InputClass>::calcSearchDirection( InputClass x )
+inline InputClass GradientDescentSolver<InputClass>::calcSearchDirection( InputClass x, double learning_rate )
 {
-    return -1 * this->df_( x );
+    return -1 * learning_rate * this->df_( x );
 }
 
 template <class InputClass>
