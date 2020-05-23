@@ -17,7 +17,7 @@ double fn( Eigen::VectorXd x, Eigen::MatrixXd A, Eigen::VectorXd b, double lambd
 
 Eigen::VectorXd dfn( Eigen::VectorXd x, Eigen::MatrixXd A, Eigen::VectorXd b, double lambda )
 {
-    return 2 * ( A.transpose() * A - lambda * Eigen::MatrixXd::Identity( A.rows(), A.cols() ) ) * x - 2 * A.transpose() * b;
+    return ( 2 * A.transpose() * A - lambda * Eigen::MatrixXd::Identity( A.rows(), A.cols() ) ) * x - 2 * A.transpose() * b;
 }
 
 double errorn( Eigen::VectorXd x, Eigen::VectorXd x_star, Eigen::MatrixXd A, Eigen::VectorXd b, double lambda )
@@ -75,7 +75,7 @@ int main( int argc, char **argv )
     Eigen::VectorXd omega_hat = Eigen::VectorXd::Ones(degree);
     Eigen::VectorXd eps = Eigen::VectorXd::Random(degree);
     Eigen::VectorXd b = A * omega_hat + eps;
-    Eigen::VectorXd x_star = A.inverse() * b;
+    Eigen::VectorXd x_star = 2 * ( 2 * A.transpose() * A + lambda * Eigen::MatrixXd::Identity( A.rows(), A.cols() ) ).inverse() * A.transpose() * b;
     Eigen::VectorXd x_start = Eigen::VectorXd::Random(degree) * 10;
 
     std::cout << std::fixed;
