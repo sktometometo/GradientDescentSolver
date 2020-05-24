@@ -27,7 +27,7 @@ echo "results are genereated."
 gnuplot -e "
     set xlabel 'k' ;
     set ylabel 'error' ;
-    set title 'convex with acceleration' ;
+    set title 'convex without acceleration' ;
     set logscale y ;
     plot './result2_1.dat' ;
     replot './result2_2.dat' ;
