@@ -16,7 +16,13 @@ public:
     void setf( boost::function<double(InputClass)> f );
     void setdf( boost::function<InputClass(InputClass)> df );
     void seterror( boost::function<double(InputClass)> error );
-    InputClass solve( InputClass x_start, std::vector<InputClass>& trajectory, double epsilon, int accel=0 );
+    InputClass solve( InputClass x_start,
+                      std::vector<InputClass>& trajectory,
+                      double epsilon,
+                      int accel=0,
+                      double xi = 0.0001, 
+                      double tau = 0.5,
+                      double learning_rate = 0.1 );
 
 protected:
 
@@ -27,7 +33,7 @@ protected:
 
     bool checkStopCondition( InputClass x, double epsilon );
     InputClass calcSearchDirection( InputClass x, double learning_rate );
-    double calcSearchStep( InputClass x, InputClass direction, double xi = 0.01, double tau = 0.5 );
+    double calcSearchStep( InputClass x, InputClass direction, double xi = 0.0001, double tau = 0.5 );
 };
 
 template <class InputClass>
@@ -67,7 +73,10 @@ inline InputClass GradientDescentSolver<InputClass>::solve(
         InputClass x_start,
         std::vector<InputClass>& trajectory,
         double epsilon,
-        int accel
+        int accel,
+        double xi,
+        double tau,
+        double learning_rate
         )
 {
     // 
@@ -87,16 +96,16 @@ inline InputClass GradientDescentSolver<InputClass>::solve(
         // 探索方向 d_k を決定し, ステップ幅を決定する
         switch ( accel ) {
             case 1:
-                d = calcSearchDirection( x, 0.1 );
-                alpha = calcSearchStep( x, d );
+                d = calcSearchDirection( x, learning_rate );
+                alpha = calcSearchStep( x, d, xi, tau );
                 break;
             case 2:
-                d = calcSearchDirection( x, 0.1 );
-                alpha = calcSearchStep( x, d );
+                d = calcSearchDirection( x, learning_rate );
+                alpha = calcSearchStep( x, d, xi, tau );
                 break;
             default:
-                d = calcSearchDirection( x, 0.1 );
-                alpha = calcSearchStep( x, d );
+                d = calcSearchDirection( x, learning_rate );
+                alpha = calcSearchStep( x, d, xi, tau );
                 break;
         }
 
