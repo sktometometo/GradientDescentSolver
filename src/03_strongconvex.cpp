@@ -1,6 +1,11 @@
 // standard library
 #include <iostream>
+#include <fstream>
+#include <regex>
 // boost
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/classification.hpp> // is_any_of
+#include <boost/algorithm/string/split.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/program_options.hpp>
@@ -26,6 +31,57 @@ double errorn( Eigen::VectorXd x, Eigen::VectorXd x_star, Eigen::MatrixXd A, Eig
     return std::abs( fn( x, A, b, lambda ) - fn( x_star, A, b, lambda ) );
 }
 
+bool loadParam( std::string filename, int& degree, Eigen::MatrixXd& A, Eigen::VectorXd& b, double& lambda, Eigen::VectorXd& x_start )
+{
+    std::ifstream ifs( filename );
+    std::string str;
+
+    if ( ifs.fail() ) {
+        return false;
+    } else {
+        std::getline( ifs, str ); //
+        std::getline( ifs, str ); //
+        degree = std::stoi( str );
+
+        A = Eigen::MatrixXd::Identity(degree,degree);
+        b = Eigen::VectorXd::Ones(degree);
+        lambda = 0.0;
+        x_start = b;
+
+        std::getline( ifs, str ); //
+        for ( int i=0; i<degree; i++ ) {
+            std::getline( ifs, str ); //
+            boost::algorithm::trim( str );
+            str = std::regex_replace( str, std::regex(" +"), " " );
+            std::vector<std::string> result;
+            boost::algorithm::split( result, str, boost::is_any_of(" ") );
+            for ( int j=0; j<degree; j++ ) {
+                A(i,j) = std::stod( result[j] );
+            }
+        }
+
+        std::getline( ifs, str ); //
+        for ( int i=0; i<degree; i++ ) {
+            std::getline( ifs, str ); //
+            boost::algorithm::trim( str );
+            b(i) = std::stod( str );
+        }
+
+        std::getline( ifs, str ); //
+        std::getline( ifs, str ); //
+        lambda = std::stod( str );
+
+        std::getline( ifs, str ); //
+        for ( int i=0; i<degree; i++ ) {
+            std::getline( ifs, str ); //
+            boost::algorithm::trim( str );
+            x_start(i) = std::stod( str );
+        }
+
+        return true;
+    }
+}
+
 int main( int argc, char **argv )
 {
     boost::program_options::options_description opt("option");
@@ -36,7 +92,8 @@ int main( int argc, char **argv )
             ("degree,d", boost::program_options::value<int>(), "size of problem")
             ("error,e", boost::program_options::value<double>(), "threshold of error")
             ("lambda,l", boost::program_options::value<double>(), "lambda")
-            ("printparam", boost::program_options::value<bool>()->default_value(false), "print parameter" );
+            ("printparam", boost::program_options::value<bool>()->default_value(false), "print parameter" )
+            ("loadparamfile", boost::program_options::value<std::string>(), "" );
     boost::program_options::variables_map vm;
     try {
         boost::program_options::store( boost::program_options::parse_command_line( argc, argv, opt ), vm );
@@ -46,15 +103,38 @@ int main( int argc, char **argv )
     }
     boost::program_options::notify( vm );
 
+    srand((unsigned int) time(0));
+
     int accel;
     int debug;
     int degree;
     double error;
-    double lambda;
     bool printparam;
-    if ( vm.count("help") || !vm.count("degree") || !vm.count("error") || !vm.count("lambda") ) {
+    Eigen::MatrixXd A;
+    Eigen::VectorXd b, x_start;
+    double lambda;
+    if ( vm.count("help")
+        || ( !vm.count("loadparamfile") and !vm.count("degree") )
+        || !vm.count("error")
+        || ( !vm.count("loadparamfile") and !vm.count("lambda") ) ) {
         std::cout << opt << std::endl;
         return 0;
+    } else if ( vm.count("loadparamfile") ) {
+        std::string filename;
+        try {
+            accel = vm["accel"].as<int>();
+            debug = vm["debug"].as<int>();
+            error = vm["error"].as<double>();
+            printparam = vm["printparam"].as<bool>();
+            filename = vm["loadparamfile"].as<std::string>();
+        } catch ( const boost::bad_any_cast& e ) {
+            std::cout << e.what() << std::endl;
+            return 0;
+        }
+        if ( not loadParam( filename, degree, A, b, lambda, x_start ) ) {
+            std::cout << opt << std::endl;
+            return 0;
+        }
     } else {
         try {
             accel = vm["accel"].as<int>();
@@ -67,21 +147,22 @@ int main( int argc, char **argv )
             std::cout << e.what() << std::endl;
             return 0;
         }
+        double coef = 4.0 / degree;
+        A = Eigen::MatrixXd::Random(degree,degree) * 3 * coef;
+        A = A.transpose() * A;
+        Eigen::VectorXd omega_hat = Eigen::VectorXd::Ones(degree);
+        Eigen::VectorXd eps = Eigen::VectorXd::Random(degree) * coef;
+        b = A * omega_hat + eps;
+        x_start = Eigen::VectorXd::Random(degree) * 10;
     }
 
-    srand((unsigned int) time(0));
-
-    Eigen::MatrixXd A = Eigen::MatrixXd::Random(degree,degree) * 3;
-    A = A.transpose() * A;
-    Eigen::VectorXd omega_hat = Eigen::VectorXd::Ones(degree);
-    Eigen::VectorXd eps = Eigen::VectorXd::Random(degree);
-    Eigen::VectorXd b = A * omega_hat + eps;
     Eigen::VectorXd x_star = 2 * ( 2 * A.transpose() * A + lambda * Eigen::MatrixXd::Identity( A.rows(), A.cols() ) ).inverse() * A.transpose() * b;
-    Eigen::VectorXd x_start = Eigen::VectorXd::Random(degree) * 10;
 
     std::cout << std::fixed;
 
     if ( printparam ) {
+        std::cout << "degree:" << std::endl;
+        std::cout << degree << std::endl;
         std::cout << "A:" << std::endl;
         std::cout << A << std::endl;
         std::cout << "b:" << std::endl;
