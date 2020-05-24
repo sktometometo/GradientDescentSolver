@@ -100,8 +100,10 @@ inline InputClass GradientDescentSolver<InputClass>::solve(
                 alpha = calcSearchStep( x, d, xi, tau );
                 break;
             case 2:
-                d = calcSearchDirection( x, learning_rate );
-                alpha = calcSearchStep( x, d, xi, tau );
+                dx = x - x_pre;
+                x_bar = x + ( ( rho_pre - 1 ) / rho ) * dx;
+                d = calcSearchDirection( x_bar, learning_rate );
+                alpha = calcSearchStep( x_bar, d, xi, tau );
                 break;
             default:
                 d = calcSearchDirection( x, learning_rate );
@@ -151,9 +153,8 @@ inline InputClass GradientDescentSolver<InputClass>::solve(
             case 2:
                 rho_pre = rho;
                 rho = ( 1 + std::sqrt( 1 + 4 * rho * rho ) ) / 2;
-                dx = x - x_pre;
                 x_pre = x;
-                x = x + alpha * d + ( ( rho_pre - 1 ) / rho ) * dx;
+                x = x_bar + alpha * d;
                 break;
             default:
                 x_pre = x;
