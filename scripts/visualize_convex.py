@@ -38,6 +38,8 @@ def readParameterFromFile( filename ):
 
     with open( filename ) as f:
         f.readline()
+        f.readline()
+        f.readline()
         [ A[0,0], A[0,1] ] = map( float, re.split( ' +', f.readline().lstrip(' ').strip('\n')) )
         [ A[1,0], A[1,1] ] = map( float, re.split( ' +', f.readline().lstrip(' ').strip('\n')) )
         f.readline()
@@ -65,8 +67,11 @@ def main():
         filename = args.file
         A, b, x_start = readParameterFromFile( filename )
 
-    x = np.linspace( -10 * abs( x_start[0] ), 10 * abs( x_start[0] ), 1024 )
-    y = np.linspace( -10 * abs( x_start[1] ), 10 * abs( x_start[1] ), 1024 )
+    x_star = np.dot( np.linalg.inv(A), b )
+
+    plotrangemax = max( abs( x_start[0] ), abs( x_start[1] ) )
+    x = np.linspace( x_star - 1.5 * plotrangemax, x_star + 1.5 * plotrangemax, 1024 )
+    y = np.linspace( x_star - 1.5 * plotrangemax, x_star + 1.5 * plotrangemax, 1024 )
 
     X, Y = np.meshgrid( x, y )
 
