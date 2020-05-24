@@ -20,9 +20,9 @@ public:
                       std::vector<InputClass>& trajectory,
                       double epsilon,
                       int accel=0,
-                      double xi = 0.0001, 
+                      double xi = 0.5, 
                       double tau = 0.5,
-                      double learning_rate = 0.1 );
+                      double learning_rate = 1.0 );
 
 protected:
 
@@ -33,7 +33,7 @@ protected:
 
     bool checkStopCondition( InputClass x, double epsilon );
     InputClass calcSearchDirection( InputClass x, double learning_rate );
-    double calcSearchStep( InputClass x, InputClass direction, double xi = 0.0001, double tau = 0.5 );
+    double calcSearchStep( InputClass x, InputClass direction, double xi, double tau );
 };
 
 template <class InputClass>
@@ -195,7 +195,7 @@ inline double GradientDescentSolver<InputClass>::calcSearchStep(
     double alpha = 1.0;
     // この条件をいじると収束しなくなる?
     // 同値な条件のはずなのに....
-    while ( this->f_( x + alpha * direction ) - this->f_(x) > xi * alpha * this->df_( x ).dot( direction ) ) {
+    while ( not ( this->f_( x + alpha * direction ) - this->f_(x) <= xi * this->df_( x ).dot( alpha * direction ) ) ) {
         alpha *= tau;
     }
     return alpha;
