@@ -31,7 +31,7 @@ def readParameterInteractive():
     return A, b, x_start
 
 def readParameterFromFile( filename ):
-    
+
     A = np.array( [[0,0],[0,0]] )
     b = np.array( [0,0] )
     x_start = np.array( [0,0] )
@@ -51,11 +51,31 @@ def readParameterFromFile( filename ):
 
     return A, b, x_start
 
+def readTrajectory( filename ):
+
+    xs = []
+    ys = []
+
+    with open( filename ) as f:
+        while True:
+            s = f.readline()
+            if s == '':
+                break
+            l = s.strip(' ').strip('\n').split(',')
+            xs.append( float(l[3]) )
+            ys.append( float(l[4]) )
+
+    xs = np.array( xs )
+    ys = np.array( ys )
+
+    return xs, ys
+
 def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-i','--interactive',help='input parameter interactively',action='store_true')
     parser.add_argument('-f','--file',type=str,help='parameter file to read')
+    parser.add_argument('--trajectory',type=str,help='trajectory file')
     args = parser.parse_args()
 
     if args.interactive:
@@ -69,9 +89,15 @@ def main():
 
     x_star = np.dot( np.linalg.inv(A), b )
 
-    plotrangemax = max( abs( x_start[0] ), abs( x_start[1] ) )
-    x = np.linspace( x_star - 1.5 * plotrangemax, x_star + 1.5 * plotrangemax, 1024 )
-    y = np.linspace( x_star - 1.5 * plotrangemax, x_star + 1.5 * plotrangemax, 1024 )
+    if args.trajectory:
+        xs, ys = readTrajectory( args.trajectory )
+        plotrangemax = max( np.max(np.abs(xs)), np.max(np.abs(ys)) )
+        x = np.linspace( x_star - 1.5 * plotrangemax, x_star + 1.5 * plotrangemax, 1024 )
+        y = np.linspace( x_star - 1.5 * plotrangemax, x_star + 1.5 * plotrangemax, 1024 )
+    else:
+        plotrangemax = max( abs( x_start[0] ), abs( x_start[1] ) )
+        x = np.linspace( x_star - 1.5 * plotrangemax, x_star + 1.5 * plotrangemax, 1024 )
+        y = np.linspace( x_star - 1.5 * plotrangemax, x_star + 1.5 * plotrangemax, 1024 )
 
     X, Y = np.meshgrid( x, y )
 
@@ -82,6 +108,9 @@ def main():
 
     ax.plot_surface( X, Y, Z, cmap = 'summer' )
     ax.contour( X, Y, Z, colors='black', offset=-1 )
+
+    if args.trajectory:
+        ax.plot( xs, ys, zs=0, zdir='z' )
 
     plt.show()
 

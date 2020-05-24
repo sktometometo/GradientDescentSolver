@@ -110,11 +110,13 @@ inline InputClass GradientDescentSolver<InputClass>::solve(
             case 2:
                 std::cout << i << ", ";
                 std::cout << this->error_(x) << ", " ;
+                /*
                 if ( accel == 2 ) {
                     std::cout << rho << ", " ;
                     std::cout << rho_pre << ", " ;
                     std::cout << ( ( rho_pre - 1 ) / rho ) << ", ";
                 }
+                */
                 std::cout << alpha << ", ";
                 for ( int i=0; i<x.rows(); i++ ) {
                     std::cout << x(i) << ", ";
