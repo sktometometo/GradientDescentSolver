@@ -81,10 +81,9 @@ def main():
     Z = fn( X, Y, A, b, l )
 
     fig = plt.figure()
-    ax = fig.gca(projection='3d')
-    ax.plot_surface( X, Y, Z, cmap = 'summer' )
-    ax.contour( X, Y, Z, colors='black', offset=-1 )
-    ax.plot( xs, ys, zs=0, zdir='z' )
+    ax = fig.gca()
+    ax.contour( X, Y, Z, colors='black' )
+    ax.plot( xs, ys )
     plt.show()
 
 if __name__ == '__main__':

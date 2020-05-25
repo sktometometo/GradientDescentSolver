@@ -9,17 +9,16 @@ from mpl_toolkits.mplot3d import Axes3D
 import sys
 import re
 
-def fn( x, y, A, b, l ):
+def fn( x, y, A, b ):
     t0 = b[0] - ( A[0,0] * x + A[0,1] * y )
     t1 = b[1] - ( A[1,0] * x + A[1,1] * y )
-    return t0 ** 2 + t1 ** 2 + l * ( x ** 2 + y ** 2 )
+    return t0 ** 2 + t1 ** 2
 
 def readParameterFromFile( filename ):
 
     A = np.array( [[0,0],[0,0]] )
     b = np.array( [0,0] )
     x_start = np.array( [0,0] )
-    l = 0.0
 
     with open( filename ) as f:
         f.readline()
@@ -31,12 +30,10 @@ def readParameterFromFile( filename ):
         b[0] = float( f.readline().lstrip(' ').strip('\n') )
         b[1] = float( f.readline().lstrip(' ').strip('\n') )
         f.readline()
-        l = float( f.readline().lstrip(' ').strip('\n') )
-        f.readline()
         x_start[0] = float( f.readline().lstrip(' ').strip('\n') )
         x_start[1] = float( f.readline().lstrip(' ').strip('\n') )
 
-    return A, b, l, x_start
+    return A, b, x_start
 
 def readTrajectory( filename ):
 
@@ -68,23 +65,22 @@ def main():
         print('please specify parameter and trajectory')
         sys.exit()
 
-    A, b, l, x_start = readParameterFromFile( args.parameter )
+    A, b, x_start = readParameterFromFile( args.parameter )
     xs, ys = readTrajectory( args.trajectory )
 
-    x_star = 2 * np.dot( np.dot( np.linalg.inv( 2 * np.dot( A.transpose(), A ) + l * np.eye( A.shape[0] ) ), A.transpose() ), b )
+    x_star = np.dot( np.linalg.inv(A), b )
 
     plotrange = math.sqrt( np.max(np.abs(xs - x_star[0])) ** 2 + np.max(np.abs(ys - x_star[1])) ** 2 )
     x = np.linspace( x_star[0] - plotrange, x_star[0] + plotrange, 1024 )
     y = np.linspace( x_star[1] - plotrange, x_star[1] + plotrange, 1024 )
 
     X, Y = np.meshgrid( x, y )
-    Z = fn( X, Y, A, b, l )
+    Z = fn( X, Y, A, b )
 
     fig = plt.figure()
-    ax = fig.gca(projection='3d')
-    ax.plot_surface( X, Y, Z, cmap = 'summer' )
-    ax.contour( X, Y, Z, colors='black', offset=-1 )
-    ax.plot( xs, ys, zs=0, zdir='z' )
+    ax = fig.gca()
+    ax.contour( X, Y, Z, 20, colors='black' )
+    ax.plot( xs, ys )
     plt.show()
 
 if __name__ == '__main__':
