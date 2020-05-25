@@ -22,8 +22,7 @@ double fn( Eigen::VectorXd x, Eigen::MatrixXd A, Eigen::VectorXd b, double lambd
 
 Eigen::VectorXd dfn( Eigen::VectorXd x, Eigen::MatrixXd A, Eigen::VectorXd b, double lambda )
 {
-    // return ( 2 * A.transpose() * A - lambda * Eigen::MatrixXd::Identity( A.rows(), A.cols() ) ) * x - 2 * A.transpose() * b;
-    return 2 * ( ( b - A * x ).transpose() * ( - 1 * A ) ).transpose() + lambda * x;
+    return 2 * A.transpose() * ( A * x - b ) + 2 * lambda * x;
 }
 
 double errorn( Eigen::VectorXd x, Eigen::VectorXd x_star, Eigen::MatrixXd A, Eigen::VectorXd b, double lambda )
