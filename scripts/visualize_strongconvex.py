@@ -41,6 +41,8 @@ def readParameterFromFile( filename ):
 
     with open( filename ) as f:
         f.readline()
+        f.readline()
+        f.readline()
         [ A[0,0], A[0,1] ] = map( float, re.split( ' +', f.readline().lstrip(' ').strip('\n')) )
         [ A[1,0], A[1,1] ] = map( float, re.split( ' +', f.readline().lstrip(' ').strip('\n')) )
         f.readline()
@@ -54,11 +56,31 @@ def readParameterFromFile( filename ):
 
     return A, b, l, x_start
 
+def readTrajectory( filename ):
+
+    xs = []
+    ys = []
+
+    with open( filename ) as f:
+        while True:
+            s = f.readline()
+            if s == '':
+                break
+            l = s.strip(' ').strip('\n').split(',')
+            xs.append( float(l[3]) )
+            ys.append( float(l[4]) )
+
+    xs = np.array( xs )
+    ys = np.array( ys )
+
+    return xs, ys
+
 def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-i','--interactive',help='input parameter interactively',action='store_true')
     parser.add_argument('-f','--file',type=str,help='parameter file to read')
+    parser.add_argument('--trajectory',type=str,help='trajectory file')
     args = parser.parse_args()
 
     if args.interactive:
@@ -70,8 +92,17 @@ def main():
         filename = args.file
         A, b, l, x_start = readParameterFromFile( filename )
 
-    x = np.linspace( -10 * abs( x_start[0] ), 10 * abs( x_start[0] ), 1024 )
-    y = np.linspace( -10 * abs( x_start[1] ), 10 * abs( x_start[1] ), 1024 )
+    x_star = 2 * np.dot( np.dot( np.linalg.inv( 2 * np.dot( A.transpose(), A ) + l * np.eye( A.shape[0] ) ), A.transpose() ), b )
+
+    if args.trajectory:
+        xs, ys = readTrajectory( args.trajectory )
+        plotrangemax = max( np.max(np.abs(xs)), np.max(np.abs(ys)) )
+        x = np.linspace( x_star - 1.5 * plotrangemax, x_star + 1.5 * plotrangemax, 1024 )
+        y = np.linspace( x_star - 1.5 * plotrangemax, x_star + 1.5 * plotrangemax, 1024 )
+    else:
+        plotrangemax = max( abs( x_start[0] ), abs( x_start[1] ) )
+        x = np.linspace( x_star - 1.5 * plotrangemax, x_star + 1.5 * plotrangemax, 1024 )
+        y = np.linspace( x_star - 1.5 * plotrangemax, x_star + 1.5 * plotrangemax, 1024 )
 
     X, Y = np.meshgrid( x, y )
 
@@ -82,6 +113,9 @@ def main():
 
     ax.plot_surface( X, Y, Z, cmap = 'summer' )
     ax.contour( X, Y, Z, colors='black', offset=-1 )
+
+    if args.trajectory:
+        ax.plot( xs, ys, zs=0, zdir='z' )
 
     plt.show()
 
