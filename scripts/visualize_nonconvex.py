@@ -9,7 +9,7 @@ import sys
 import re
 
 def fn( x, y, A, b, c ):
-    t = A[0,0] * x * x + A[0,1] * x * y + A[1,0] * x * y + A[1,1] * y * Y + b[0] * x + b[1] * y + c
+    t = A[0,0] * x * x + A[0,1] * x * y + A[1,0] * x * y + A[1,1] * y * y + b[0] * x + b[1] * y + c
     return t * t
 
 def readParameterInteractive():
@@ -83,13 +83,13 @@ def main():
     args = parser.parse_args()
 
     if args.interactive:
-        A, b, c, x_start = readParameterInteractive()
+        A, b, l, x_start = readParameterInteractive()
     else:
         if not args.file:
             print('please specify file')
             sys.exit()
         filename = args.file
-        A, b, c, x_start = readParameterFromFile( filename )
+        A, b, l, x_start = readParameterFromFile( filename )
 
     x_star = 0
     if args.trajectory:
